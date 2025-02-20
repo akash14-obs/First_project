@@ -1,0 +1,83 @@
+// BankController.java
+@RestController
+@RequestMapping("/api/bank")
+public class BankController {
+    @Autowired
+    private BankService bankService;
+
+    @PostMapping("/create-account")
+    public ResponseEntity<Account> createAccount(@RequestBody AccountRequest request) {
+        return ResponseEntity.ok(bankService.createAccount(request));
+    }
+
+    @PostMapping("/deposit")
+    public ResponseEntity<Transaction> deposit(@RequestBody TransactionRequest request) {
+        return ResponseEntity.ok(bankService.deposit(request));
+    }
+
+    @PostMapping("/withdraw")
+    public ResponseEntity<Transaction> withdraw(@RequestBody TransactionRequest request) {
+        return ResponseEntity.ok(bankService.withdraw(request));
+    }
+}
+
+// BankService.java
+@Service
+public class BankService {
+    @Autowired
+    private AccountRepository accountRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    public Account createAccount(AccountRequest request) {
+        Account account = new Account(request.getUserId(), request.getInitialBalance());
+        return accountRepository.save(account);
+    }
+
+    public Transaction deposit(TransactionRequest request) {
+        Account account = accountRepository.findById(request.getAccountId()).orElseThrow();
+        account.setBalance(account.getBalance() + request.getAmount());
+        accountRepository.save(account);
+        return transactionRepository.save(new Transaction(request.getAccountId(), request.getAmount(), "DEPOSIT"));
+    }
+
+    public Transaction withdraw(TransactionRequest request) {
+        Account account = accountRepository.findById(request.getAccountId()).orElseThrow();
+        if (account.getBalance() < request.getAmount()) {
+            throw new RuntimeException("Insufficient balance");
+        }
+        account.setBalance(account.getBalance() - request.getAmount());
+        accountRepository.save(account);
+        return transactionRepository.save(new Transaction(request.getAccountId(), request.getAmount(), "WITHDRAW"));
+    }
+}
+
+// Account.java
+@Entity
+public class Account {
+    @Id @GeneratedValue
+    private Long id;
+    private Long userId;
+    private double balance;
+    
+    public Account(Long userId, double balance) {
+        this.userId = userId;
+        this.balance = balance;
+    }
+}
+
+// Transaction.java
+@Entity
+public class Transaction {
+    @Id @GeneratedValue
+    private Long id;
+    private Long accountId;
+    private double amount;
+    private String type;
+    
+    public Transaction(Long accountId, double amount, String type) {
+        this.accountId = accountId;
+        this.amount = amount;
+        this.type = type;
+    }
+}
