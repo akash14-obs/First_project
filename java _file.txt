@@ -1,6 +1,7 @@
 // Java Program to Check if a 
 // String is a Palindrome
 // java program
+//
 import java.io.*;
 
 public class Palindrome {
